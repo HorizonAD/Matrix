@@ -1,0 +1,66 @@
+// See README.txt for information and build instructions.
+//
+// Note: START and END tags are used in comments to define sections used in
+// tutorials.  They are not part of the syntax for Protocol Buffers.
+//
+// To get an in-depth walkthrough of this file and the related examples, see:
+// https://developers.google.com/protocol-buffers/docs/tutorials
+
+// [START declaration]
+syntax = "proto2";
+package MetaData;
+// [END declaration]
+
+import "common.proto";
+import "can.proto";
+import "sensor.proto";
+
+// [START messages]
+
+message Box3DResult {
+  required int32 id = 1;
+  required CommonProto.Box3D box = 2;
+}
+
+message SensorFrame {
+  repeated CANProto.CANFrameRaw can_frames_raw = 1;
+  optional CANProto.CANFrame can_frames = 2;
+
+  repeated SensorProto.IMUFrame imu_frames_raw = 11; // raw IMU information  
+  optional SensorProto.IMUFrame imu_frame = 12;      // processed IMU information
+  optional SensorProto.IMUFrame imu_offset = 13;
+ 
+  repeated SensorProto.GPSFrameRaw gps_frames_raw = 21;
+  optional SensorProto.GPSFrame gps_frame = 22;
+}
+
+message StructurePerception {
+  repeated CommonProto.ObstacleRaws obstacles_raws = 1;
+  repeated CommonProto.Obstacles obstacles = 10;
+  repeated CommonProto.Lines lines = 11;
+  
+  repeated CommonProto.Image parsing = 20;
+  repeated CommonProto.Image depth = 21;
+  
+  repeated CommonProto.FreeSpacePoints scan_pts = 30;
+  repeated CommonProto.ParsingSetting parsing_settings = 40;
+
+}
+message Data {
+  required int32 version = 1;
+  required int32 frame_id = 2;
+  repeated CommonProto.Image image = 3;
+  repeated CommonProto.DataDescriptor data_descriptor = 4;
+  
+  repeated CommonProto.CameraParam camera = 10;
+  repeated CommonProto.CameraParam camera_default = 11;
+  repeated CommonProto.CameraMatrix camera_matrix = 12;
+
+  optional SensorFrame sensor = 20;
+  optional CommonProto.MotionFrame motion = 21;     // vehicle motion
+  optional CommonProto.OdometryFrame odometry = 22;
+  
+  optional StructurePerception structure_perception = 30;
+}
+
+// [END messages]

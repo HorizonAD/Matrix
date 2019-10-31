@@ -1,0 +1,15 @@
+float64 x
+float64 y
+float64 z
+float64 vel_x
+float64 vel_y
+float64 vel_z
+float64 yaw
+float64 length
+float64 width
+float64 height
+float64[] box
+int32 image_left
+int32 image_right
+int32 image_top
+int32 image_bottom

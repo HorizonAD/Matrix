@@ -1,0 +1,15 @@
+<launch>
+    <node pkg="matrix" type="matrix_process" name="matrix_process" output="screen" >
+        <param name="is_pub_line" value="true"/>
+        <param name="is_pub_object" value="true"/>
+        <param name="is_pub_light" value="true"/>
+        <param name="is_pub_fullimage" value="true"/>
+        <param name="is_pub_onechannelimage" value="true"/>
+        <param name="is_pub_channelsimage" value="true"/>
+        <param name="is_pub_laneimage" value="true"/>
+        <param name="is_pub_image" value="true"/>
+         <param name="is_pub_trafficsign" value="true"/>
+    </node>
+
+    <node pkg="matrix" type="matrix_receiver" name="matrix_receiver"/>
+</launch>

@@ -1,0 +1,74 @@
+// See README.txt for information and build instructions.
+//
+// Note: START and END tags are used in comments to define sections used in
+// tutorials.  They are not part of the syntax for Protocol Buffers.
+//
+// To get an in-depth walkthrough of this file and the related examples, see:
+// https://developers.google.com/protocol-buffers/docs/tutorials
+
+// [START declaration]
+syntax = "proto2";
+package CANProto;
+// [END declaration]
+
+// [START messages]
+
+message VehSpeed {
+  required float speed = 1;
+  required int64 time_stamp = 2;
+}
+message WheelAngle {
+  required float angle = 1;
+  required int64 time_stamp = 2;
+}
+
+//  GEAR_TYPE_N = 0
+//  GEAR_TYPE_P = 1
+//  GEAR_TYPE_R = 2
+//  GEAR_TYPE_D = 3
+message Gear {
+  required int32 type = 1;
+  required int64 time_stamp = 2;
+}
+
+// TURN_SIGNAL_NONE = 0
+// TURN_SIGNAL_LEFT = 1
+// TURN_SIGNAL_RIGHT = 2
+// TURN_SIGNAL_DOUBLE = 3
+message TurnSignal {
+  required int32 type = 1;
+  required int64 time_stamp = 2;
+}
+
+// IMU Info from CAN Bus
+message CANIMU {
+  // accelerator
+  optional float acc = 1;
+  optional float yaw = 4;
+  optional float yaw_rate = 7;
+  optional int64 time_stamp = 50;
+}
+
+// CAN Bus Frame
+// Every CANFrame is accompany Image Frame
+// CAN Bus capture rate is much faster than image capture rate
+// so, there may be multiple infos inside CANFrame
+message CANFrame {
+  repeated TurnSignal ts = 1;
+  repeated Gear gt = 2;
+  repeated VehSpeed sp = 3;
+  repeated WheelAngle wa = 4;
+  repeated CANIMU imu = 5;
+}
+
+// CANBus Raw Data
+message CANFrameRaw {
+  required int32 can_id = 1;
+  // can_dlc's maximum value is 8
+  required int32 can_dlc = 2;
+  // each 32bit data actually has 8bit valid bits(history reason...)
+  repeated int32 data = 3;
+  required int64 time_stamp = 4;
+}
+
+// [END messages]
