@@ -15,12 +15,16 @@
 #include <sys/types.h>
 
 #include <ros/ros.h>
+#include <tf/transform_broadcaster.h>
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <matrix/MatrixLanes.h>
 #include <matrix/Cameras.h>
 #include <matrix/TrafficSigns.h>
+#include <visualization_msgs/MarkerArray.h>
+
+
 
 #include <matrix/Matrix.h>
 #include <matrix/TrafficLights.h>
@@ -104,6 +108,8 @@ ros::Publisher lines_pub_custom[4];
 ros::Publisher object_pub_custom[4];
 ros::Publisher trafficlight_pub_custom[4];
 ros::Publisher trafficsign_pub_cutom[4];
+ros::Publisher marker_pub_obj;
+ros::Publisher  markerArrary_rear;
 image_transport::Publisher image_pub_custom[4];
 image_transport::Publisher fullimage_pub_custom[4];
 image_transport::Publisher onechannelimage_pub_custom[4];
@@ -119,7 +125,6 @@ bool is_pub_onechannelimage;
 bool is_pub_channelsimage;
 bool is_pub_laneimage;
 bool is_pub_image;
-
 
 /**
  * @brief class UndistortInfo
@@ -785,6 +790,9 @@ bool ParseMeta(Meta::Meta *meta) {
     // TODO: odometry info
   }
   /* Perception Info */
+  visualization_msgs::MarkerArrayPtr  objectsDisplayClear(new visualization_msgs::MarkerArray);
+    visualization_msgs::MarkerPtr 	mkrClear(new visualization_msgs::Marker);
+    visualization_msgs::MarkerArrayPtr  objectsDisplay(new visualization_msgs::MarkerArray);
   const MetaData::StructurePerception &percepts = meta->data().structure_perception();
   for (int idx = 0; idx < img_count; idx++) {
     std::cout << "Camera " << idx << ": " << std::endl;
@@ -827,6 +835,52 @@ bool ParseMeta(Meta::Meta *meta) {
 
 
 	/* Obstacle Info */
+  
+    mkrClear->action=3;
+    mkrClear->header.frame_id = "velodyne";
+    objectsDisplayClear->markers.push_back(*mkrClear);
+
+    
+    visualization_msgs::MarkerPtr 		mkr(new visualization_msgs::Marker);
+    visualization_msgs::MarkerPtr 		txt(new visualization_msgs::Marker);
+
+    mkr->header.stamp = ros::Time::now();
+    mkr->header.frame_id = "velodyne";
+    mkr->color.a = 0.9;
+
+    //txt参数设置
+    txt->header = mkr->header;
+    txt->pose.position.z = 1;
+    txt->scale.z = 0.5;
+    txt->color.r = 0.0f;
+    txt->color.g = 1.0f;
+    txt->color.b = 0.0f;
+    txt->color.a = 1.0;
+
+    char strID[20];
+
+    mkr->ns = "esrObj2";
+    mkr->lifetime=ros::Duration();//(0.2);
+    mkr->color.r = 0.0f;
+    mkr->color.g = 1.0f;
+    mkr->color.b = 0.0f;
+    mkr->pose.orientation.x = 0.0;
+    mkr->pose.orientation.y = 0.0;
+    mkr->scale.x =2;
+    mkr->scale.y =2;
+
+    txt->ns = "testDisplay2";//mkr->ns;
+    txt->lifetime= mkr->lifetime;
+
+
+    mkr->type=visualization_msgs::Marker::CUBE;
+    mkr->action = visualization_msgs::Marker::ADD;
+    mkr->pose.position.z = 0.0;
+
+
+    txt->type=visualization_msgs::Marker::TEXT_VIEW_FACING;
+    txt->action = visualization_msgs::Marker::ADD;
+
 	const CommonProto::Obstacles &obstacles = percepts.obstacles(idx);
 	matrix::MatrixObjects objects;
     matrix::TrafficLights lights_;
@@ -837,6 +891,8 @@ bool ParseMeta(Meta::Meta *meta) {
 	lights_.header.frame_id="matrix_light";
 	signs.header.stamp=ros::Time::now();
 	signs.header.frame_id="matrix_trafficSign";
+
+
     lights_.lights.resize(obstacles.obstacle_size());
     objects.objects.resize(obstacles.obstacle_size());
     signs.trafficSign.resize(obstacles.obstacle_size());
@@ -844,6 +900,11 @@ bool ParseMeta(Meta::Meta *meta) {
 	for (int i = 0; i < obstacles.obstacle_size(); i++) {
 		const CommonProto::Obstacle &obs = obstacles.obstacle(i);
 		float conf = obs.conf() * conf_scale;
+    mkr->pose.orientation.z = 0;
+    mkr->pose.orientation.w = 1;
+
+    mkr->id=obs.id();
+    txt->id=mkr->id + 10000;                  //display is different from true ID
 
 		objects.objects[i].header.stamp=ros::Time::now();
 		// Obstacle ID
@@ -860,6 +921,7 @@ bool ParseMeta(Meta::Meta *meta) {
 		std::cout << "The Obstacle life time is : " << obs.life_time() << std::endl;
 		// Obstacle Age
 		std::cout << "The Obstacle age is : " << obs.age() << std::endl;
+		
 
 		/* img info */
 		const CommonProto::ImageSpaceInfo &img_info = obs.img_info();
@@ -920,6 +982,11 @@ bool ParseMeta(Meta::Meta *meta) {
 			if (world_info.has_position()) {
 			    objects.objects[i].position_shape.x=world_info.position().x();
 			    objects.objects[i].position_shape.y=world_info.position().y();
+          mkr->pose.position.x = world_info.position().x();
+          mkr->pose.position.y = world_info.position().y();
+
+          txt->pose.position.x = mkr->pose.position.x;
+          txt->pose.position.y = mkr->pose.position.y;
 				std::cout << "The Obstacle position is : " << world_info.position().x() << " " << world_info.position().y();
 				if (world_info.position().has_z()) {
 				    objects.objects[i].position_shape.z=world_info.position().z();
@@ -986,6 +1053,7 @@ bool ParseMeta(Meta::Meta *meta) {
 
 		/* Traffic Light Info */
 		if (obs.type() == CommonProto::ObstacleType_TrafficLight) {
+            txt->id = mkr->id = obs.id();
             lights_.lights[i].ObsId=obs.id();
 		    lights_.lights[i].position_shape.image_bottom=img_info.rect().bottom();
 		    lights_.lights[i].position_shape.image_top=img_info.rect().top();
@@ -1039,7 +1107,18 @@ bool ParseMeta(Meta::Meta *meta) {
 				std::cout << "The Traffice Sign Info is : " << CommonProto::TrafficSignType_Name(sign) << std::endl;
 			}
 		}
+    txt->text = "obj";
+
+    mkr->scale.y = 1.0;
+    mkr->scale.x = 1.0;
+    mkr->scale.z = 1.0;
+    if(mkr->pose.position.x!=0 && mkr->scale.y!=0 || mkr->id!=0){
+        objectsDisplay->markers.push_back(*txt);
+        objectsDisplay->markers.push_back(*mkr);
+    }
 	}   // end for obstacles(i)
+  
+  
 	if(is_pub_object)
     object_pub_custom[idx].publish(objects);
 	if(is_pub_light)
@@ -1047,6 +1126,9 @@ bool ParseMeta(Meta::Meta *meta) {
 	if(is_pub_trafficsign)
 	trafficsign_pub_cutom[idx].publish(signs);
 	std::cout << std::endl;
+
+  //markerArrary_rear.publish(objectsDisplayClear);
+  //markerArrary_rear.publish(objectsDisplay);
 
 
 	/* Lines Info */
@@ -1172,6 +1254,10 @@ bool ParseMeta(Meta::Meta *meta) {
 */
         std::cout << std::endl; // empty line
 	} // end for lines info
+
+    
+    //markerArrary.publish(txtIDDisplay);
+  
 	if(is_pub_line)
     lines_pub_custom[lines.cam_id()].publish(lines_);
 	/* Free Space Info */
@@ -1185,8 +1271,11 @@ bool ParseMeta(Meta::Meta *meta) {
       const CommonProto::Point &pt_vcs = free_pts.pts_vcs(i);
       // TODO: deal with free space points
     }  // end for free space points
-
+    
   }  // end for camera idx
+  markerArrary_rear.publish(objectsDisplayClear);
+  markerArrary_rear.publish(objectsDisplay);
+  objectsDisplay->markers.clear();
   return true;
 }
 
@@ -1720,7 +1809,14 @@ int main(int argc, char **argv) {
    ros::NodeHandle private_nh("~");
    image_transport::ImageTransport it(private_nh);
    ros::Subscriber sub = nh.subscribe("matrix_msg", 1, matrixCallback);
+   ros::Rate rate(10.0);
+   tf::TransformBroadcaster br;
+tf::Transform transform;
+   transform.setOrigin( tf::Vector3(0.0, 2.0, 0.0) );
+  transform.setRotation( tf::Quaternion(0, 0, 0, 1) );
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "turtle1", "carrot1"));
 
+  markerArrary_rear = private_nh.advertise<visualization_msgs::MarkerArray>("/matrix/objs", 2);
 
    camera_pub_custom=private_nh.advertise<matrix::Cameras>("/matrix/camer",1);
 
@@ -1735,6 +1831,7 @@ int main(int argc, char **argv) {
    object_pub_custom[1]=private_nh.advertise<matrix::MatrixObjects>("/matrix/object1",1);
    object_pub_custom[2]=private_nh.advertise<matrix::MatrixObjects>("/matrix/object2",1);
    object_pub_custom[3]=private_nh.advertise<matrix::MatrixObjects>("/matrix/object3",1);
+
 
    private_nh.param("is_pub_light",is_pub_light,bool(true));
    trafficlight_pub_custom[0]=private_nh.advertise<matrix::TrafficLights>("/matrix/traffic_light0",1);
