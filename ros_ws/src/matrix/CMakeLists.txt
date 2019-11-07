@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   roslib
   rosbag
   rospy
+  tf
   sensor_msgs
   cv_bridge
   image_transport
@@ -136,7 +137,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES matrix
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs
   DEPENDS system_lib
 )
 
@@ -293,4 +294,3 @@ target_link_libraries(matrix_process ${catkin_LIBRARIES}
                                       libtiff
                                       libjasper
                                       IlmImf)
-
