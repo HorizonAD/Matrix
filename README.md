@@ -10,6 +10,7 @@ catkin_make
 catkin_make install
 ```
 1.3. 使用rosmsg和rostopic命令可以查看输出的信息，如果对这两个命令，请点击http://wiki.ros.org/kinetic/Installation/Ubuntu 自行查找。
+
 1.4. 将matrix节点加入默认路径参数
 ```shell
 source devel/setup.bash
